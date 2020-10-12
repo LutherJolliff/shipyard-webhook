@@ -3,7 +3,7 @@ def shipyardBuildBadge = addEmbeddableBadgeConfiguration(id: "shipyard-build", s
 pipeline {
     agent {
         node {
-            label 'ubuntu-slave'
+            label 'master'
         }
     }
 
@@ -14,11 +14,7 @@ pipeline {
         NEXUS_REPO = credentials('nexus-raw-repo')
         APP_SOURCE = './src/**/**/**/**.html'
         STATUS_SUCCESS = ''
-        JENKINS_URL = "${JENKINS_URL}"
         JOB_NAME = "${JOB_NAME}"
-        SONAR_TOKEN = credentials('govcloud-sonarqube')
-        SONAR_PROJECT = 'shipyard-project'
-        SONAR_SOURCE = 'src'
     }
 
     stages {
@@ -35,26 +31,6 @@ pipeline {
                 echo 'Installing...'
                 sh 'echo $GIT_BRANCH'
                 sh 'npm ci'
-            }
-        }
-
-        stage('Sonarqube Analysis') {
-            agent {
-                node {
-                    label 'master'
-                }
-            }
-
-            environment {
-                scannerHome = tool 'cynerge-sonarqube'
-            }
-            steps {
-                withSonarQubeEnv('Cynerge Sonarqube') {
-                    sh 'printenv'
-                    sh 'ls'
-                    // sh "${JENKINS_HOME}/tools/hudson.plugins.sonar.SonarRunnerInstallation/cynerge-sonarqube/bin/sonar-scanner"
-                    sh "${scannerHome}/bin/sonar-scanner -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey=$SONAR_PROJECT -Dsonar.sources=$SONAR_SOURCE"
-                }
             }
         }
 
@@ -77,41 +53,6 @@ pipeline {
                     sh 'pa11y-ci-reporter-html'
                 }
             }
-            post {
-                success {
-                    // Do NOT delete the empty line underneath below curl command. It is necessary for script logic
-                    dir('test-results') {
-                        sh "curl -v --user '${NEXUS_USER}:${NEXUS_PASS}' --upload-file \"{\$(echo *.html | tr ' ' ',')}\" ${NEXUS_REPO}Pa11y/${JOB_NAME}/${BRANCH_NAME}/${BUILD_NUMBER}/"
-
-                    }
-                }
-            }
-
-        }
-
-        stage('Store NPM Artifact') {
-            agent {
-                docker {
-                    image 'luther007/cynerge_images'
-                    args '-u root'
-                    alwaysPull true
-                }
-            }
-            environment { 
-                NPM_USER = credentials('nexus-user')
-                NPM_PASS = credentials('nexus-pass')
-                NPM_REGISTRY = credentials('nexus-repo')
-                NPM_EMAIL = 'npm@site.com'
-                NPM_RC_PATH = "${env.WORKSPACE}/.npmrc"
-            }
-            steps {
-                sh 'npm install -g npm-cli-login'
-                sh 'touch .npmrc'
-                sh 'printenv'
-                sh 'npm-cli-login'
-                sh 'cat .npmrc'
-                sh "npm publish --registry=${env.NPM_REGISTRY}/"
-            }
         }
 
         // Run accessability scanning with Lighthouse
@@ -128,15 +69,6 @@ pipeline {
                 sh 'mkdir -p report/lighthouse'
                 sh 'chmod -R 777 report/'
                 sh 'lighthouse-batch -v -h -f ./sites/sites.txt'
-            }
-            post {
-                success {
-                    // Do NOT delete the empty line underneath below curl command. It is necessary for script logic
-                    dir('./report/lighthouse') {
-                        sh "curl -v --user '${NEXUS_USER}:${NEXUS_PASS}' --upload-file \"{\$(echo *.html | tr ' ' ',')}\" ${NEXUS_REPO}Lighthouse/${JOB_NAME}/${BRANCH_NAME}/${BUILD_NUMBER}/"
-
-                    }
-                }
             }
         }
     }
