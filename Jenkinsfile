@@ -49,9 +49,6 @@ pipeline {
                 sh 'mkdir test-results'
                 sh 'chmod -R 777 test-results/'
                 sh "pa11y-ci -T 5 ${env.APP_SOURCE} --json > test-results/pa11y-ci-results.json"
-                dir('test-results') {
-                    sh 'pa11y-ci-reporter-html'
-                }
             }
         }
 
