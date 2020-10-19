@@ -1,6 +1,6 @@
 # Shipyard Webhook
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.1.2.
+This is a test of the Shipyard webhook
 
 ## Development server
 
