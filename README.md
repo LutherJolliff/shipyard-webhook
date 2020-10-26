@@ -1,6 +1,6 @@
 # Shipyard Webhook
 
-This is a test of the Shipyard webhook. This is compatible with the current Shipyard version.
+This is a test of the Shipyard webhook. This is compatible with the current Shipyard version. Currently used as manual trigger.
 
 ## Development server
 
